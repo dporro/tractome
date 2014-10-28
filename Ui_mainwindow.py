@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file '/home/tractome/Tractome_git_repo/tractome/mainwindow.ui'
+# Form implementation generated from reading ui file '/home/dporro/Tractome/tractome/mainwindow.ui'
 #
-# Created: Fri Oct 24 01:14:21 2014
+# Created: Wed Oct 22 16:33:40 2014
 #      by: pyside-uic 0.2.13 running on PySide 1.1.0
 #
 # WARNING! All changes made in this file will be lost!
@@ -12,7 +12,7 @@ from PySide import QtCore, QtGui
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         MainWindow.setObjectName("MainWindow")
-        MainWindow.resize(1460, 751)
+        MainWindow.resize(1460, 838)
         self.centralWidget = QtGui.QWidget(MainWindow)
         self.centralWidget.setObjectName("centralWidget")
         self.horizontalLayout_6 = QtGui.QHBoxLayout(self.centralWidget)
@@ -352,6 +352,7 @@ class Ui_MainWindow(object):
         self.spbExtClust = QtGui.QSpinBox(self.centralWidget)
         self.spbExtClust.setEnabled(False)
         self.spbExtClust.setReadOnly(False)
+        self.spbExtClust.setMinimum(0)
         self.spbExtClust.setObjectName("spbExtClust")
         self.verticalLayout_16.addWidget(self.spbExtClust)
         self.vSlExtClust = QtGui.QSlider(self.centralWidget)
@@ -361,6 +362,7 @@ class Ui_MainWindow(object):
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.vSlExtClust.sizePolicy().hasHeightForWidth())
         self.vSlExtClust.setSizePolicy(sizePolicy)
+        self.vSlExtClust.setMinimum(0)
         self.vSlExtClust.setMaximum(1000)
         self.vSlExtClust.setOrientation(QtCore.Qt.Vertical)
         self.vSlExtClust.setObjectName("vSlExtClust")

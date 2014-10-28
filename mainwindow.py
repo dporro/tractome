@@ -83,7 +83,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.connect(self.chkbvis, QtCore.SIGNAL("stateChanged(int)"), self.on_chkbvis_stateChanged)
         self.tblROI.setCellWidget(1, 1,  self.chkbvis)
         
-       
         # self.show_hide_rows(True)
         
         # creating the main Scene
@@ -232,7 +231,22 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         """
         self.spbRecluster.setValue(value)
      
-   
+    @Slot(int)
+    def on_spbExtClust_valueChanged(self, p0):
+        """
+        Update vSlExtClust and call method that computes kdtree-query.
+        """
+        self.vSlExtClust.setValue(p0)
+        self.tractome.compute_kqueries(p0)
+        self.glWidget.updateGL()
+    
+    @Slot(int)
+    def on_vSlExtClust_valueChanged(self, value):
+        """
+        Update spbExtClust.
+        """
+        self.spbExtClust.setValue(value)
+
     @Slot()
     def on_pbRecluster_clicked(self):
         """
@@ -321,6 +335,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 self.tblTract.item(5, 1).setText('LAS')
 
             self.grbCluster.setEnabled(True)
+            self.spbExtClust.setEnabled(True)
+            self.vSlExtClust.setEnabled(True)
                
    
     def create_update_Item(self,  object):
@@ -359,6 +375,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.actionLoad_Tractography.setEnabled(True)
             self.structnameitem =  QtGui.QTreeWidgetItem(self.treeObject)    
 
+    
     @Slot()
     def on_actionLoad_Saved_Segmentation_triggered(self):
         """
@@ -386,6 +403,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 self.tblTract.setEnabled(True)
                 self.menuROI.setEnabled(True)
                 self.grbCluster.setEnabled(True)
+                self.spbExtClust.setEnabled(True)
+                self.vSlExtClust.setEnabled(True)
                 self.actionLoad_Tractography.setEnabled(True)
                 self.actionSave_Segmentation.setEnabled(True) 
                 self.actionSave_as_trackvis_file.setEnabled(True)

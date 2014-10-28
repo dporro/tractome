@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 
 """This is the part that connects the logic of the tractome
 functionalities to the GUI.
@@ -40,6 +41,8 @@ from dipy.tracking.metrics import length
 from dissimilarity_common import compute_disimilarity
 from sklearn.neighbors import KDTree
 import os
+
+
 class Tractome(object):
     """
     """
@@ -135,7 +138,10 @@ class Tractome(object):
             streamlines_ids = np.arange(size_T, dtype=np.int)
             self.clusters = mbkm_wrapper(self.full_dissimilarity_matrix, n_clusters, streamlines_ids)
             
-        
+            #computing kdtree for extension with K-nearest neighbors
+            print "Computing KDTree"
+            self.compute_kdtree()
+            
             print "Saving computed information from tractography"
             
             if not os.path.exists(tracks_directoryname):
@@ -243,7 +249,7 @@ class Tractome(object):
         Saves all the information from the tractography required for
         the whole segmentation procedure.
         """
-        info = {'initclusters':self.clusters, 'buff':self.buffers, 'dismatrix':self.full_dissimilarity_matrix,'nprot':self.num_prototypes}
+        info = {'initclusters':self.clusters, 'buff':self.buffers, 'dismatrix':self.full_dissimilarity_matrix,'nprot':self.num_prototypes,  'kdtree':self.kdt}
         print "Saving information of the tractography for the segmentation"
         print filepath
         pickle.dump(info, open(filepath,'w'), protocol=pickle.HIGHEST_PROTOCOL)
@@ -260,6 +266,7 @@ class Tractome(object):
         self.clusters = general_info['initclusters']
         self.full_dissimilarity_matrix = general_info['dismatrix']
         self.num_prototypes = general_info['nprot']
+        self.kdt = general_info['kdtree']
  
     def save_segmentation(self, filename):
         """
@@ -297,7 +304,24 @@ class Tractome(object):
         self.kdt=KDTree(self.full_dissimilarity_matrix)
         
     
- 
+    def compute_kqueries(self,  k):
+        """
+        Makes the query to find the knn of the current streamlines on the scene
+        """
+        nn = k+1
+        if not hasattr(self, 'streamlines_before_knn'):
+            self.streamlines_before_knn = self.streamlab.streamline_ids
+        elif hasattr(self.streamlab, 'activeb'):
+            if self.streamlab.activeb == True:
+                self.streamlines_before_knn = self.streamlab.streamline_ids
+                self.streamlab.activeb = False
+            
+        streamlines_scene = list(self.streamlines_before_knn)
+        distance, a2 = self.kdt.query(self.full_dissimilarity_matrix[streamlines_scene],k=nn, return_distance = True)
+        b2 = set(a2.flat)
+        self.streamlab.set_streamlines_knn(b2)
+        
+        
     def compute_dataforROI(self):
         """
         Compute info from tractography to provide it to ROI.

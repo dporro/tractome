@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>1460</width>
-    <height>751</height>
+    <height>838</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -792,6 +792,9 @@
           <property name="readOnly">
            <bool>false</bool>
           </property>
+          <property name="minimum">
+           <number>0</number>
+          </property>
          </widget>
         </item>
         <item>
@@ -804,6 +807,9 @@
             <horstretch>0</horstretch>
             <verstretch>0</verstretch>
            </sizepolicy>
+          </property>
+          <property name="minimum">
+           <number>0</number>
           </property>
           <property name="maximum">
            <number>1000</number>
@@ -825,7 +831,7 @@
         <verstretch>0</verstretch>
        </sizepolicy>
       </property>
-      <layout class="QGridLayout" name="gridLayout_4" columnstretch="0" columnminimumwidth="0"/>
+      <layout class="QGridLayout" name="gridLayout_4" columnstretch="0"/>
      </widget>
     </item>
    </layout>
