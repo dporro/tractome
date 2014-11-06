@@ -66,11 +66,12 @@ class Tractome(object):
         self.structpath = structpath
         self.img = nib.load(self.structpath)
         data = self.img.get_data()
+
         self.affine = self.img.get_affine()
         self.dims = data.shape[:3]
         
         # Create the Guillotine object
-        data = (np.interp(data, [data.min(), data.max()], [0, 255]))
+        #data = (np.interp(data, [data.min(), data.max()], [0, 255]))
         self.guil = Guillotine('Volume Slicer', data, np.copy(self.affine))
         self.scene.add_actor(self.guil) 
     
@@ -308,18 +309,22 @@ class Tractome(object):
         """
         Makes the query to find the knn of the current streamlines on the scene
         """
-        nn = k+1
-        if not hasattr(self, 'streamlines_before_knn'):
-            self.streamlines_before_knn = self.streamlab.streamline_ids
-        elif hasattr(self.streamlab, 'activeb'):
-            if self.streamlab.activeb == True:
-                self.streamlines_before_knn = self.streamlab.streamline_ids
-                self.streamlab.activeb = False
-            
-        streamlines_scene = list(self.streamlines_before_knn)
-        distance, a2 = self.kdt.query(self.full_dissimilarity_matrix[streamlines_scene],k=nn, return_distance = True)
-        b2 = set(a2.flat)
-        self.streamlab.set_streamlines_knn(b2)
+
+        if k==0:
+            self.streamlab.reset_state('knn')
+        else:
+            nn = k+1
+            if not hasattr(self, 'streamlines_before_knn'):
+                self.streamlines_before_knn = self.streamlab.selected_streamlines()
+            elif hasattr(self.streamlab, 'activeb') :
+                if self.streamlab.activeb == True:
+                    self.streamlines_before_knn = self.streamlab.selected_streamlines()
+                    self.streamlab.activeb = False
+                
+            streamlines_scene = list(self.streamlines_before_knn)
+            distance, a2 = self.kdt.query(self.full_dissimilarity_matrix[streamlines_scene],k=nn, return_distance = True)
+            b2 = set(a2.flat)
+            self.streamlab.set_streamlines_knn(b2)
         
         
     def compute_dataforROI(self):
@@ -422,7 +427,7 @@ class Tractome(object):
                 last_chkd =pos
         
         if last_chkd == -1:
-            self.streamlab.reset_state()
+            self.streamlab.reset_state('roi')
         else:
             if len(streamlines_ROIs) > 0:
                 self.streamlab.set_streamlines_ROIs(streamlines_ROIs)

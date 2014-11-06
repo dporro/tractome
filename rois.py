@@ -8,8 +8,6 @@ Distributed under the BSD 3-clause license. See COPYING.txt.
 
 from fos import Actor
 from pyglet.gl import *
-from pyglet.lib import load_library # trick for the bug of pyglet arrays
-glib = load_library('GL')
 from fos.actor.primitives import *
 from pylab import cm
 import numpy as np
@@ -241,7 +239,7 @@ class Mask(Actor):
         glPointSize(6.)
         glPushMatrix()
         glMultMatrixf(self.glaffine)
-        glib.glDrawArrays(GL_POINTS, 
+        glDrawArrays(GL_POINTS, 
                           0, 
                           len(self.vertices))
         glPopMatrix()

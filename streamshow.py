@@ -18,7 +18,6 @@ from fos.coords import img_to_ras_coords, from_matvec
 
 # pyglet module
 from pyglet.gl import *
-from pyglet.lib import load_library
 
 # dipy modules
 from dipy.io.dpy import Dpy
@@ -28,10 +27,8 @@ from dipy.tracking.vox2track import track_counts
 
 # other
 import copy 
-import cPickle as pickle
-
-# trick for the bug of pyglet multiarrays
-glib = load_library('GL')
+import cPickle as pick
+from ctypes import cast, c_int, POINTER
 
 # Tk dialogs
 import Tkinter, tkFileDialog
@@ -46,6 +43,7 @@ from itertools import chain
 
 import time
 from sklearn.cluster import MiniBatchKMeans
+import pdb
 
 question_message = """
 >>>>Track Labeler
@@ -225,6 +223,7 @@ class StreamlineLabeler(Actor, Manipulator):
         
 
         self.clusters = clusters
+        self.initial_clusters = clusters
         # MBKM:
         Manipulator.__init__(self, initial_clusters=clusters, clustering_function=mbkm_wrapper)
 
@@ -281,8 +280,8 @@ class StreamlineLabeler(Actor, Manipulator):
         Set streamlines belonging to ROIs
         """
 
-        if not hasattr(self, 'clusters_before_roi') or  len(self.clusters_before_roi)==0:
-            self.clusters_before_roi = self.clusters
+        if not hasattr(self, 'clusters_before') or  len(self.clusters_before)==0:
+            self.clusters_before = self.clusters
             
         self.streamlines_rois = streamlines_rois_ids
         if len(streamlines_rois_ids)>0:
@@ -291,14 +290,15 @@ class StreamlineLabeler(Actor, Manipulator):
             #actual clusters. From here I should obtain the "same"
             #clusters but only with streamlines from ROI.
             clusters_new = {}
-            for rid in self.clusters_before_roi:
-                new_cluster_ids = self.clusters_before_roi[rid] & streamlines_rois_ids
+            for rid in self.clusters_before:
+                new_cluster_ids = self.clusters_before[rid] & streamlines_rois_ids
                 if len(new_cluster_ids) > 0:
                     clusters_new[rid] = new_cluster_ids
                     clusters_new[list(new_cluster_ids)[0]] = clusters_new.pop(rid)
                     
             self.clusters_reset(clusters_new)
             self.recluster_action()
+            self.activeb = True
             self.hide_representatives = True
             self.select_all()
             self.expand = True
@@ -306,14 +306,18 @@ class StreamlineLabeler(Actor, Manipulator):
 
     def set_streamlines_knn(self,  streamlines_knn):
         """
+        Set streamlines for KNN-extension
         """ 
+        if not hasattr(self, 'clusters_before') or  len(self.clusters_before)==0 or hasattr(self, 'streamlines_rois') :
+            self.clusters_before = self.clusters
+            
         clusters_new = {}
-        for rid in self.clusters_before_roi:
-            new_cluster_ids = self.clusters_before_roi[rid] & streamlines_knn
+        for rid in self.initial_clusters:
+            new_cluster_ids = self.initial_clusters[rid] & streamlines_knn
             if len(new_cluster_ids) > 0:
                 clusters_new[rid] = new_cluster_ids
                 clusters_new[list(new_cluster_ids)[0]] = clusters_new.pop(rid)
-                    
+      
         self.clusters_reset(clusters_new)
         self.recluster_action()
         self.hide_representatives = True
@@ -325,28 +329,29 @@ class StreamlineLabeler(Actor, Manipulator):
         """
         Hides all element in the screen if the ROI returns an empty set of streamlines
         """
-        if not hasattr(self, 'clusters_before_roi') or  len(self.clusters_before_roi)==0:
-            self.clusters_before_roi = self.clusters
+        if not hasattr(self, 'clusters_before') or  len(self.clusters_before)==0:
+            self.clusters_before = self.clusters
         
         self.hide_representatives = True
         self.expand = False
          
-    def reset_state(self):
+    def reset_state(self, function):
         """
-        Show clustering state before any ROI was applied 
+        Show clustering state before any ROI or KNN-extension was applied 
         """
-        try:
-            self.clusters_before_roi
-            self.hide_representatives = False
-            self.clusters_reset(self.clusters_before_roi)
-            self.recluster_action()
-            self.clusters_before_roi = {}
+        if function =='roi':
+            self.clusters_reset(self.initial_clusters)
             self.activeb = True
-
-        except AttributeError:
-            self.hide_representatives = False
             
-            
+        elif function == 'knn':
+            self.clusters_reset(self.clusters_before)
+            self.recluster_action()
+            self.select_all()
+            self.expand = True   
+        
+        self.hide_representatives = False
+        self.recluster_action()    
+        self.clusters_before = {}
             
     def draw(self):
         """Draw virtual and real streamlines.
@@ -372,9 +377,9 @@ class StreamlineLabeler(Actor, Manipulator):
             glMultMatrixf(self.glaffine)
             if isinstance(self.representatives_first, tuple): print '>> first Tuple'
             if isinstance(self.representatives_count, tuple): print '>> count Tuple'
-            glib.glMultiDrawArrays(GL_LINE_STRIP, 
-                                   self.representatives_first.ctypes.data, 
-                                   self.representatives_count.ctypes.data, 
+            glMultiDrawArrays(GL_LINE_STRIP, 
+                                   cast(self.representatives_first.ctypes.data, POINTER(c_int)), 
+                                   cast(self.representatives_count.ctypes.data, POINTER(c_int)), 
                                    len(self.representatives_first))
             glPopMatrix()
 
@@ -385,10 +390,9 @@ class StreamlineLabeler(Actor, Manipulator):
             glLineWidth(self.streamlines_line_width)
             glPushMatrix()
             glMultMatrixf(self.glaffine)
-            glib.glMultiDrawArrays(GL_LINE_STRIP, 
-                                    self.streamlines_visualized_first.ctypes.data, 
-                                    self.streamlines_visualized_count.ctypes.data, 
-                                    len(self.streamlines_visualized_first))
+            glMultiDrawArrays(GL_LINE_STRIP, cast(self.streamlines_visualized_first.ctypes.data, POINTER(c_int)), 
+                              cast(self.streamlines_visualized_count.ctypes.data, POINTER(c_int)), 
+                              len(self.streamlines_visualized_first))
             glPopMatrix()
         
         glDisableClientState(GL_COLOR_ARRAY)
@@ -544,7 +548,7 @@ class StreamlineLabeler(Actor, Manipulator):
                 self.streamlines_visualized_count = np.ascontiguousarray(self.streamlines_count[selected_streamlines_ids], dtype='i4')
         else:
             print "Collapse."
-            
+     
     
     def remove_unselected_action(self):
         """
@@ -569,6 +573,18 @@ class StreamlineLabeler(Actor, Manipulator):
         self.streamlines_visualized_count = np.ascontiguousarray(self.streamlines_count[streamlines_ids], dtype='i4')
        
 
+    def selected_streamlines(self):
+        """
+        Returns ids of streamlines belonging to selected representatives
+        """
+        if len(self.selected)> 0:
+           streamlines_ids = list(reduce(chain, [self.clusters[rid] for rid in self.selected]))
+        else:
+           streamlines_ids = list(reduce(chain, [self.clusters[rid] for rid in self.clusters]))
+         
+        return  streamlines_ids
+      
+        
     def recluster_action(self):
         """
         """
