@@ -141,17 +141,33 @@ class Tractome(object):
         print "Loading saved session file"
         segm_info = pickle.load(open(segpath)) 
         state = segm_info['segmsession']  
+        pdb.set_trace()
+        
+        structpath=segm_info['structfilename']
+        tracpath=segm_info['tractfilename']
+     
+        if hasattr(self, 'structpath') and hasattr(self, 'tracpath'):
+            try:
+                assert(os.path.relpath(self.structpath) == structpath)  
+                assert(os.path.relpath(self.tracpath) == tracpath)
+                load_data = False
+                
+            except AssertionError:
+                load_data = True
+                
+        else:
+            load_data = True
             
-        self.structpath=segm_info['structfilename']
-        self.tracpath=segm_info['tractfilename']   
+        
+        if load_data:
+            # load T1 volume registered in MNI space
+            print "Loading structural information file"
 
-        # load T1 volume registered in MNI space
-        print "Loading structural information file"
+            self.loading_structural(structpath)
 
-        self.loading_structural(self.structpath)
-
-        # load tractography
-        self.loading_full_tractograpy(self.tracpath)
+            # load tractography
+            self.loading_full_tractograpy(tracpath)
+            
         self.streamlab.set_state(state)
             
         self.scene.update()
@@ -314,7 +330,7 @@ class Tractome(object):
         print "Save segmentation result from current session"
         filename = filename[0]+'.seg'
         state = self.streamlab.get_state()
-        seg_info={'structfilename':self.structpath, 'tractfilename':self.tracpath, 'segmsession':state}
+        seg_info={'structfilename':os.path.relpath(self.structpath), 'tractfilename':os.path.relpath(self.tracpath), 'segmsession':state}
         pickle.dump(seg_info, open(filename,'w'), protocol=pickle.HIGHEST_PROTOCOL)
 
 
