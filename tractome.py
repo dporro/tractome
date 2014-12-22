@@ -141,7 +141,6 @@ class Tractome(object):
         print "Loading saved session file"
         segm_info = pickle.load(open(segpath)) 
         state = segm_info['segmsession']  
-        pdb.set_trace()
         
         structpath=segm_info['structfilename']
         tracpath=segm_info['tractfilename']
